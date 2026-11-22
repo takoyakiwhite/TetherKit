@@ -1,27 +1,40 @@
-name: Build TetherKit App (x86_64)
+name: Build TetherKit App Offline (x86_64)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-x64-app:
-    runs-on: macos-15-intel
+  build-x64-offline:
+    runs-on: macos-15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install dependencies
-        run: brew install cmake libusb
+      - name: Install x86_64 Homebrew and libusb
+        run: |
+          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/null
+          /usr/local/bin/brew install cmake libusb
 
       - name: Configure and Build GUI (x86_64)
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+          export PATH="/usr/local/bin:$PATH"
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/usr/local
           cmake --build build --target gui -j$(sysctl -n hw.ncpu)
 
-      - name: Upload x86_64 App
+      - name: Bundle libusb into App and Helper
+        run: |
+          mkdir -p dist/TetherKit.app/Contents/Frameworks
+          cp /usr/local/opt/libusb/lib/libusb-1.0.0.dylib dist/TetherKit.app/Contents/Frameworks/
+          install_name_tool -change /usr/local/opt/libusb/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib dist/TetherKit.app/Contents/MacOS/TetherKit
+          HELPER=$(find dist/TetherKit.app/Contents/Library/HelperTools -type f | head -n 1)
+          if [ -n "$HELPER" ]; then
+            install_name_tool -change /usr/local/opt/libusb/lib/libusb-1.0.0.dylib @executable_path/../../Frameworks/libusb-1.0.0.dylib "$HELPER"
+          fi
+
+      - name: Upload Zero-Dependency x86_64 App
         uses: actions/upload-artifact@v4
         with:
-          name: TetherKit-App-x86_64
+          name: TetherKit-App-Offline-x86_64
           path: dist/TetherKit.app
