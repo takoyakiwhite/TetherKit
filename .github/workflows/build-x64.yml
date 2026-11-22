@@ -20,10 +20,11 @@ jobs:
           CFLAGS="-arch x86_64 -mmacosx-version-min=14.0" LDFLAGS="-arch x86_64" ./configure --host=x86_64-apple-darwin --prefix=/tmp/libusb-x64 --enable-static --disable-shared
           make -j$(sysctl -n hw.ncpu) && make install
 
-      - name: Force x86_64 architecture in GUI build script
+      - name: Force x86_64 architecture and fix codesign in build-gui.sh
         run: |
           sed -i '' 's/swift build/swift build --arch x86_64/g' gui/Scripts/build-gui.sh
           sed -i '' 's/xcodebuild/xcodebuild ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO/g' gui/Scripts/build-gui.sh
+          sed -i '' 's/codesign --verify/codesign --force --deep --sign - dist\/TetherKit.app \&\& codesign --verify/g' gui/Scripts/build-gui.sh
 
       - name: Configure and Build GUI (x86_64)
         run: |
