@@ -22,10 +22,15 @@ jobs:
 
       - name: Patch build-gui.sh for x86_64 and subcomponent signing
         run: |
-          sed -i '' 's/swift build/swift build --arch x86_64/g' gui/Scripts/build-gui.sh
-          sed -i '' 's/xcodebuild/xcodebuild ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO/g' gui/Scripts/build-gui.sh
-          python3 -c '
+          python3 - << 'EOF'
           p = "gui/Scripts/build-gui.sh"
           s = open(p).read()
-          s = s.replace("codesign ", "codesign --force --deep --sign - \"$APP_BUNDLE\" 2>/dev/null || true; find dist/TetherKit.app -type f \\( -name \"*.dylib\" -o -perm +111 \\) -exec codesign --force --sign - {} + 2>/dev/null || true; codesign ")
-          open(p, "
+          s = s.replace("swift build", "swift build --arch x86_64")
+          s = s.replace("xcodebuild", "xcodebuild ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO")
+          s = s.replace("codesign ", "find dist/TetherKit.app -type f \\(-name '*.dylib' -o -perm +111\\) -exec codesign --force --sign - {} + 2>/dev/null || true; codesign --force --deep --sign - dist/TetherKit.app 2>/dev/null || true; codesign ")
+          open(p, "w").write(s)
+          EOF
+
+      - name: Configure and Build GUI (x86_64)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/
