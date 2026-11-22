@@ -20,11 +20,21 @@ jobs:
           CFLAGS="-arch x86_64 -mmacosx-version-min=14.0" LDFLAGS="-arch x86_64" ./configure --host=x86_64-apple-darwin --prefix=/tmp/libusb-x64 --enable-static --disable-shared
           make -j$(sysctl -n hw.ncpu) && make install
 
+      - name: Force x86_64 architecture in GUI build script
+        run: |
+          sed -i '' 's/swift build/swift build --arch x86_64/g' gui/Scripts/build-gui.sh
+          sed -i '' 's/xcodebuild/xcodebuild ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO/g' gui/Scripts/build-gui.sh
+
       - name: Configure and Build GUI (x86_64)
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/tmp/libusb-x64
           cmake --build build --target gui -j$(sysctl -n hw.ncpu)
 
+      - name: Verify x86_64 architecture and upload App
+        run: |
+          file dist/TetherKit.app/Contents/MacOS/TetherKit
+          otool -L dist/TetherKit.app/Contents/MacOS/TetherKit
+        
       - name: Upload Zero-Dependency x86_64 App
         uses: actions/upload-artifact@v4
         with:
