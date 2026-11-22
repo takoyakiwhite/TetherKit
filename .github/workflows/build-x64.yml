@@ -1,10 +1,10 @@
-name: Build TetherKit (x86_64)
+name: Build TetherKit App (x86_64)
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-x64:
+  build-x64-app:
     runs-on: macos-15-intel
     steps:
       - name: Checkout repository
@@ -15,19 +15,18 @@ jobs:
       - name: Install dependencies
         run: brew install cmake libusb
 
-      - name: Configure and Build (x86_64)
+      - name: Build CLI and GUI App (x86_64)
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DTETHERKIT_BUILD_GUI=ON
           cmake --build build --config Release -j$(sysctl -n hw.ncpu)
 
       - name: Package Artifacts
         run: |
           mkdir -p release-x64
-          cp -R build/bin/* release-x64/
-          [ -d build/gui/TetherKit.app ] && cp -R build/gui/TetherKit.app release-x64/ || true
+          find build -name "TetherKit.app" -exec cp -R {} release-x64/ \;
 
-      - name: Upload x86_64 Artifacts
+      - name: Upload x86_64 App
         uses: actions/upload-artifact@v4
         with:
-          name: TetherKit-macOS-x86_64
+          name: TetherKit-App-x86_64
           path: release-x64/
