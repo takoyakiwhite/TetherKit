@@ -15,18 +15,13 @@ jobs:
       - name: Install dependencies
         run: brew install cmake libusb
 
-      - name: Build CLI and GUI App (x86_64)
+      - name: Configure and Build GUI (x86_64)
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DTETHERKIT_BUILD_GUI=ON
-          cmake --build build --config Release -j$(sysctl -n hw.ncpu)
-
-      - name: Package Artifacts
-        run: |
-          mkdir -p release-x64
-          find build -name "TetherKit.app" -exec cp -R {} release-x64/ \;
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+          cmake --build build --target gui -j$(sysctl -n hw.ncpu)
 
       - name: Upload x86_64 App
         uses: actions/upload-artifact@v4
         with:
           name: TetherKit-App-x86_64
-          path: release-x64/
+          path: dist/TetherKit.app
