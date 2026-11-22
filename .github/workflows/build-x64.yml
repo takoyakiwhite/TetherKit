@@ -12,26 +12,18 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install x86_64 Homebrew and libusb
+      - name: Build static x86_64 libusb from source
         run: |
-          arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/null
-          /usr/local/bin/brew install cmake libusb
+          curl -fsSL https://github.com/libusb/libusb/releases/download/v1.0.27/libusb-1.0.27.tar.bz2 -o libusb.tar.bz2
+          tar -xf libusb.tar.bz2
+          cd libusb-1.0.27
+          CFLAGS="-arch x86_64 -mmacosx-version-min=14.0" LDFLAGS="-arch x86_64" ./configure --host=x86_64-apple-darwin --prefix=/tmp/libusb-x64 --enable-static --disable-shared
+          make -j$(sysctl -n hw.ncpu) && make install
 
       - name: Configure and Build GUI (x86_64)
         run: |
-          export PATH="/usr/local/bin:$PATH"
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/usr/local
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/tmp/libusb-x64
           cmake --build build --target gui -j$(sysctl -n hw.ncpu)
-
-      - name: Bundle libusb into App and Helper
-        run: |
-          mkdir -p dist/TetherKit.app/Contents/Frameworks
-          cp /usr/local/opt/libusb/lib/libusb-1.0.0.dylib dist/TetherKit.app/Contents/Frameworks/
-          install_name_tool -change /usr/local/opt/libusb/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib dist/TetherKit.app/Contents/MacOS/TetherKit
-          HELPER=$(find dist/TetherKit.app/Contents/Library/HelperTools -type f | head -n 1)
-          if [ -n "$HELPER" ]; then
-            install_name_tool -change /usr/local/opt/libusb/lib/libusb-1.0.0.dylib @executable_path/../../Frameworks/libusb-1.0.0.dylib "$HELPER"
-          fi
 
       - name: Upload Zero-Dependency x86_64 App
         uses: actions/upload-artifact@v4
