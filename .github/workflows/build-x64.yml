@@ -30,11 +30,11 @@ jobs:
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/tmp/libusb-x64
           cmake --build build --target gui -j$(sysctl -n hw.ncpu)
 
-      - name: Verify x86_64 architecture and upload App
+      - name: Verify x86_64 architecture
         run: |
           file dist/TetherKit.app/Contents/MacOS/TetherKit
           otool -L dist/TetherKit.app/Contents/MacOS/TetherKit
-        
+
       - name: Upload Zero-Dependency x86_64 App
         uses: actions/upload-artifact@v4
         with:
