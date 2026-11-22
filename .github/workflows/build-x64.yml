@@ -27,10 +27,22 @@ jobs:
           s = open(p).read()
           s = s.replace("swift build", "swift build --arch x86_64")
           s = s.replace("xcodebuild", "xcodebuild ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO")
-          s = s.replace("codesign ", "find dist/TetherKit.app -type f \\(-name '*.dylib' -o -perm +111\\) -exec codesign --force --sign - {} + 2>/dev/null || true; codesign --force --deep --sign - dist/TetherKit.app 2>/dev/null || true; codesign ")
+          s = s.replace("codesign ", "find dist/TetherKit.app -type f \\( -name '*.dylib' -o -perm +111 \\) -exec codesign --force --sign - {} + 2>/dev/null || true; codesign --force --deep --sign - dist/TetherKit.app 2>/dev/null || true; codesign ")
           open(p, "w").write(s)
           EOF
 
       - name: Configure and Build GUI (x86_64)
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_PREFIX_PATH=/tmp/libusb-x64
+          cmake --build build --target gui -j$(sysctl -n hw.ncpu)
+
+      - name: Verify x86_64 architecture
+        run: |
+          file dist/TetherKit.app/Contents/MacOS/TetherKit
+          otool -L dist/TetherKit.app/Contents/MacOS/TetherKit
+
+      - name: Upload Zero-Dependency x86_64 App
+        uses: actions/upload-artifact@v4
+        with:
+          name: TetherKit-App-Offline-x86_64
+          path: dist/TetherKit.app
